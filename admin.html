@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel Admin</title>
+</head>
+<body>
+    <h2>Usuários cadastrados</h2>
+    <div id="lista">Carregando usuários...</div>
+
+<script>
+async function carregarUsuarios() {
+    const listaDiv = document.getElementById("lista");
+    const emailLogado = localStorage.getItem("emailLogado"); // pega o email do login
+
+    try {
+        const res = await fetch(`http://localhost:3000/admin/usuarios?email=${emailLogado}`);
+
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        const usuarios = await res.json();
+
+        if (!Array.isArray(usuarios) || usuarios.length === 0) {
+            listaDiv.innerHTML = "Nenhum usuário cadastrado.";
+            return;
+        }
+
+        let html = "<ul>";
+        usuarios.forEach(u => {
+            html += `<li>
+                        <strong>Email:</strong> ${u.email}<br>
+                        <strong>Respostas:</strong><br>`;
+
+            if (u.respostas_chat && u.respostas_chat.length > 0) {
+                html += "<ul>";
+                u.respostas_chat.forEach(r => {
+                    html += `<li>
+                                Pergunta: ${r.pergunta} <br>
+                                Resposta: ${r.resposta} <br>
+                                Data: ${new Date(r.data).toLocaleString()}
+                             </li>`;
+                });
+                html += "</ul>";
+            } else {
+                html += "Nenhuma resposta salva.";
+            }
+
+            // Botões de deletar e alterar
+            html += `<button onclick="deletarUsuario('${u._id}')">Deletar</button>
+                     <button onclick="alterarUsuario('${u._id}', '${u.email}', '${u.senha}', '${u.role}')">Alterar</button>`;
+
+            html += "</li><br>";
+        });
+        html += "</ul>";
+
+        listaDiv.innerHTML = html;
+
+    } catch (e) {
+        console.error("Erro ao carregar usuários:", e);
+        listaDiv.innerHTML = "Erro ao buscar dados ou acesso negado.";
+    }
+}
+
+// Função para deletar usuário
+async function deletarUsuario(id) {
+    const emailLogado = localStorage.getItem("emailLogado");
+    if (!confirm("Deseja realmente deletar este usuário?")) return;
+
+    try {
+        const res = await fetch(`http://localhost:3000/admin/usuarios/${id}?adminEmail=${emailLogado}`, {
+            method: "DELETE"
+        });
+        const data = await res.json();
+        alert(data.msg);
+        carregarUsuarios(); // Atualiza lista
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao deletar usuário.");
+    }
+}
+
+// Função para alterar usuário
+async function alterarUsuario(id, email, senha, role) {
+    const emailLogado = localStorage.getItem("emailLogado");
+    const novoEmail = prompt("Novo email:", email);
+    const novaSenha = prompt("Nova senha:", senha);
+    const novaRole = prompt("Nova role (admin/user):", role);
+
+    if (!novoEmail || !novaSenha || !novaRole) return;
+
+    try {
+        const res = await fetch(`http://localhost:3000/admin/usuarios/${id}?adminEmail=${emailLogado}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: novoEmail, senha: novaSenha, role: novaRole })
+        });
+        const data = await res.json();
+        alert(data.msg);
+        carregarUsuarios(); // Atualiza lista
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao atualizar usuário.");
+    }
+}
+
+carregarUsuarios();
+</script>
+</body>
+</html>

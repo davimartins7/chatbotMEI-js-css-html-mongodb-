@@ -1,0 +1,13 @@
+<script>
+function recuperar() {
+    const email = document.getElementById("email").value;
+
+    fetch("http://localhost:3000/api/usuarios/recuperar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+    })
+    .then(res => res.json())
+    .then(data => alert(data.msg));
+}
+</script>
